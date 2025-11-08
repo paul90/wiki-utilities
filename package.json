@@ -2,7 +2,8 @@
   "name": "@fedwiki/utilities",
   "version": "0.0.1",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "fix-image-resize": "node image-commons/fix-resize.cjs"
   },
   "keywords": [],
   "author": "Paul Rodwell",
@@ -18,5 +19,9 @@
   "engines": {
     "node": ">= 20.x"
   },
-  "type": "module"
+  "type": "module",
+  "dependencies": {
+    "minimist": "^1.2.8",
+    "sharp": "^0.34.4"
+  }
 }
