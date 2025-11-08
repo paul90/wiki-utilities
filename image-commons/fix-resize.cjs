@@ -61,13 +61,13 @@ fs.readdir(commons, { withFileTypes: true })
               .resize(targetWidth, targetHeight, { fit: 'inside', withoutEnlargement: true })
               .jpeg({ quality: 92, force: true })
               .toBuffer({ resolveWithObject: true })
-              .then(({ data, info }) => {
+              .then(async ({ data, info }) => {
                 console.log(
                   `${curr.split(path.sep).at(-1)} ${info.width != meta.width || info.height != meta.height ? `\tfrom ${meta.width}x${meta.height} to ${info.width}x${info.height}` : ''} ${meta.format != 'jpeg' ? `\tfrom ${meta.format} to jpeg` : ''}`,
                 )
                 modified++
                 if (!config.dryrun) {
-                  //fs.writeFile(curr, data)
+                  await fs.writeFile(curr, data)
                   resolve()
                 } else {
                   resolve()
