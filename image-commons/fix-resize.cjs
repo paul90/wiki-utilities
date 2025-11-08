@@ -1,4 +1,4 @@
-#!/usr/bin/env Node
+#!/usr/bin/env node
 // scans images commons for oversized images, and fixes them.
 
 // parameters:
