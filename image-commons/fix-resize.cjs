@@ -23,34 +23,38 @@ const smallEnough = (width, height) => width <= targetWidth && height <= targetH
 const opts = {
   alias: {
     d: 'data',
+    n: 'dryrun',
+  },
+  boolean: ['dryrun'],
+  default: {
+    data: path.join(getUserHome(), '.wiki'),
+    dryrun: false,
   },
 }
 
-const argv = parseArgs(process.argv.slice(2), opts)
-
-const defaultConfig = {
-  data: path.join(getUserHome(), '.wiki'),
-}
-
-const config = Object.assign(defaultConfig, argv)
+const config = parseArgs(process.argv.slice(2), opts)
 
 if (config.data.startsWith('~')) {
   console.error('use full path rather than one starting with ~')
   process.exit()
 }
 
+if (config.dryrun) {
+  console.log('DRY RUN: no changes will be applied\n')
+}
+
 const commons = path.join(config.data, 'commons')
+let modified = 0
 
 fs.readdir(commons, { withFileTypes: true })
   .then(files => {
     return files.filter(dirent => dirent.isFile()).map(dirent => path.join(dirent.parentPath, dirent.name))
   })
   .then(files => {
-    files.forEach(curr => {
-      try {
+    return files.map(curr => {
+      return new Promise(resolve => {
         const image = sharp(curr)
         image.metadata().then(async meta => {
-          //console.log('meta', { curr, meta })
           if (!smallEnough(meta.width, meta.height) || meta.format != 'jpeg') {
             await image
               .keepExif()
@@ -59,14 +63,31 @@ fs.readdir(commons, { withFileTypes: true })
               .toBuffer({ resolveWithObject: true })
               .then(({ data, info }) => {
                 console.log(
-                  `Squeezing ${curr.split(path.sep).at(-1)} \tfrom ${meta.width}x${meta.height} \tto ${info.width}x${info.height}`,
+                  `${curr.split(path.sep).at(-1)} ${info.width != meta.width || info.height != meta.height ? `\tfrom ${meta.width}x${meta.height} to ${info.width}x${info.height}` : ''} ${meta.format != 'jpeg' ? `\tfrom ${meta.format} to jpeg` : ''}`,
                 )
-                fs.writeFile(curr, data)
+                modified++
+                if (!config.dryrun) {
+                  //fs.writeFile(curr, data)
+                  resolve()
+                } else {
+                  resolve()
+                }
               })
+          } else {
+            resolve()
           }
         })
-      } catch (error) {
-        console.log('Image Problem', curr, error)
+      })
+    })
+  })
+  .then(done => {
+    Promise.all(done).then(() => {
+      if (modified === 0) {
+        console.log('No image files needed fixing')
+      } else if (config.dryrun) {
+        console.log(`${modified} images need fixing`)
+      } else {
+        console.log(`${modified} images have been fixed`)
       }
     })
   })

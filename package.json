@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "fix-image-resize": "node image-commons/fix-resize.cjs"
+    "fix-images": "node image-commons/fix-resize.cjs"
   },
   "keywords": [],
   "author": "Paul Rodwell",
