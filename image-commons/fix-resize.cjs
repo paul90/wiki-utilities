@@ -53,30 +53,48 @@ fs.readdir(commons, { withFileTypes: true })
   .then(files => {
     return files.map(curr => {
       return new Promise(resolve => {
-        const image = sharp(curr)
-        image.metadata().then(async meta => {
-          if (!smallEnough(meta.width, meta.height) || meta.format != 'jpeg') {
-            await image
-              .keepExif()
-              .resize(targetWidth, targetHeight, { fit: 'inside', withoutEnlargement: true })
-              .jpeg({ quality: 92, force: true })
-              .toBuffer({ resolveWithObject: true })
-              .then(async ({ data, info }) => {
-                console.log(
-                  `${curr.split(path.sep).at(-1)} ${info.width != meta.width || info.height != meta.height ? `\tfrom ${meta.width}x${meta.height} to ${info.width}x${info.height}` : ''} ${meta.format != 'jpeg' ? `\tfrom ${meta.format} to jpeg` : ''}`,
-                )
-                modified++
-                if (!config.dryrun) {
-                  await fs.writeFile(curr, data)
-                  resolve()
-                } else {
-                  resolve()
-                }
-              })
-          } else {
-            resolve()
-          }
-        })
+        let image
+        try {
+          image = sharp(curr)
+        } catch {
+          console.log(`Unable to load ${curr.split(path.sep).at(-1)}`)
+          return resolve()
+        }
+        image
+          .metadata()
+          .then(async meta => {
+            if (!smallEnough(meta.width, meta.height) || meta.format != 'jpeg') {
+              await image
+                .keepExif()
+                .resize(targetWidth, targetHeight, { fit: 'inside', withoutEnlargement: true })
+                .jpeg({ quality: 92, force: true })
+                .toBuffer({ resolveWithObject: true })
+                .then(async ({ data, info }) => {
+                  console.log(
+                    `${curr.split(path.sep).at(-1)} ${info.width != meta.width || info.height != meta.height ? `\tfrom ${meta.width}x${meta.height} to ${info.width}x${info.height}` : ''} ${meta.format != 'jpeg' ? `\tfrom ${meta.format} to jpeg` : ''}`,
+                  )
+                  modified++
+                  if (!config.dryrun) {
+                    try {
+                      await fs.access(curr, fs.constants.W_OK)
+                      await fs.writeFile(curr, data)
+                      resolve()
+                    } catch {
+                      console.log(`skipping ${curr.split(path.sep).at(-1)} unable to write.`)
+                      resolve()
+                    }
+                  } else {
+                    resolve()
+                  }
+                })
+            } else {
+              resolve()
+            }
+          })
+          .catch(err => {
+            console.log(`Unable to process ${curr.split(path.sep).at(-1)}`)
+            return resolve()
+          })
       })
     })
   })
